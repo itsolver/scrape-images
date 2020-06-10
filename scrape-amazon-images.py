@@ -5,19 +5,17 @@ import re
 import json
 import sys
 from lxml import html
-import argparse
 
 user_agent = {
     'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'}
 url = 'https://www.amazon.com.au/FX505DT-IPS-Type-R5-3550H-GeForce-FX505DT-AH51/dp/B07VBK4SYS'
-# TODO: get  title and create folder with same name
-
 
 # Download the Amazon product page
 print('Downloading page %s...' % url)
 page = requests.get(url, headers=user_agent)
 
 tree = html.fromstring(page.content)
+# Create images folder based on page title
 t = tree.find(".//title").text
 os.makedirs('images/'+t, exist_ok=True)
 
