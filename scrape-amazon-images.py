@@ -1,36 +1,41 @@
 import requests
 import os
 import bs4
+import re
+import json
+import sys
+from lxml import html
+user_agent = {
+    'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'}
 url = 'https://www.amazon.com.au/FX505DT-IPS-Type-R5-3550H-GeForce-FX505DT-AH51/dp/B07VBK4SYS'
 os.makedirs('product-images', exist_ok=True)
 
 # Download the Amazon product page
 print('Downloading page %s...' % url)
-res = requests.get(url)
-res.raise_for_status()
+page = requests.get(url, headers=user_agent)
 
-soup = bs4.BeautifulSoup(res.text, 'html.parser')
+tree = html.fromstring(page.content)
 
-# TODO: Find the high-res URL of the product page
-productImgElem = soup.select('.imgTagWrapper img')
-if productImgElem == []:
-    print('Could not find product image')
+
+# TODO: Find the script with data containing image URLs
+hiRes = str(tree.xpath('//script[contains(., "ImageBlockATF")]/text()'))
+if hiRes == []:
+    print('Could not find script data containing hires image urls')
 else:
-    imgUrl = productImgElem[0].get('data-old-hires')
+    hiResImages = re.findall('\"hiRes\":\"(https.*?\.jpg)\"', hiRes)
 
-# TODO: Download the image.
-print('Downloading image %s...' % (imgUrl))
-res = requests.get(imgUrl)
-res.raise_for_status()
+for imgUrl in hiResImages:
+    # Download the image.
+    print('Downloading image %s...' % (imgUrl))
+    res = requests.get(imgUrl)
+    res.raise_for_status()
 
-# TODO: Save the image to ./product-images
-imageFile = open(os.path.join('product-images',
-                              os.path.basename(imgUrl)), 'wb')
+    # Save the image to ./product-images
+    imageFile = open(os.path.join('product-images',
+                                  os.path.basename(imgUrl)), 'wb')
 
-for chunk in res.iter_content(100000):
-    imageFile.write(chunk)
-imageFile.close()
-
-# TODO: Get next high res product image.
+    for chunk in res.iter_content(100000):
+        imageFile.write(chunk)
+    imageFile.close()
 
 print('Done.')
